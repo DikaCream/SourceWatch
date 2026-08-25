@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import SourceCard from "../components/SourceCard";
 import { listSources, checkSource } from "../lib/contract";
+import { useSourceWatch } from "../context/SourceWatchContext";
 import type { Source } from "../lib/types";
 
 export default function Home() {
+  const { wallet } = useSourceWatch();
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState<number | null>(null);
@@ -13,7 +15,13 @@ export default function Home() {
   async function load() { setLoading(true); setError(null); try { setSources(await listSources()); } catch (e: any) { setError(e.message || "Could not load monitors."); } finally { setLoading(false); } }
   useEffect(() => { load(); }, []);
 
-  async function check(id: number) { setChecking(id); setError(null); try { await checkSource(id); await load(); } catch (e: any) { setError(e.message || "Check failed."); } finally { setChecking(null); } }
+  async function check(id: number) {
+    if (!wallet.address) { await wallet.connect(); return; }
+    setChecking(id); setError(null);
+    try { await checkSource(id, wallet.address); await load(); }
+    catch (e: any) { setError(e.message || "Check failed."); }
+    finally { setChecking(null); }
+  }
 
   const material = sources.reduce((sum, s) => sum + s.material_count, 0);
   return <div>

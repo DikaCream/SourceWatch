@@ -16,7 +16,7 @@ export default function SourceDetail() {
   async function load() { setBusy(true); try { setSource(await getSource(sid)); setReports((await listReports(sid)).reverse()); } catch (e: any) { setError(e.message); } finally { setBusy(false); } }
   useEffect(() => { load(); }, [sid]);
 
-  async function check() { if (!wallet.address) { await wallet.connect(); return; } setChecking(true); setError(null); setMsg("Validators reading the page…"); try { await checkSource(sid); setMsg("Report finalized."); await load(); } catch (e: any) { setError(e.message); setMsg(null); } finally { setChecking(false); } }
+  async function check() { if (!wallet.address) { await wallet.connect(); return; } setChecking(true); setError(null); setMsg("Validators reading the page…"); try { await checkSource(sid, wallet.address); setMsg("Report finalized."); await load(); } catch (e: any) { setError(e.message); setMsg(null); } finally { setChecking(false); } }
 
   if (busy) return <div className="loading-screen"><span className="loader" />Reading source…</div>;
   if (!source) return <div className="container-narrow page"><div className="empty-state"><span className="empty-icon">?</span><h3>Source not found</h3><Link to="/sources" className="button button-dark">Back to monitors</Link></div></div>;

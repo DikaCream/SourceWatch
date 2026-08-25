@@ -12,7 +12,12 @@ export default function Register() {
     if (!wallet.address) { await wallet.connect(); return; }
     if (label.trim().length < 3 || description.trim().length < 20 || !url.startsWith("https://")) { setError("Label min 3 chars, description min 20 chars, URL must be https."); return; }
     setBusy(true); setMsg("Submitting for baseline consensus…");
-    try { await registerSource(label.trim(), description.trim(), url.trim()); setMsg("Baseline committed!"); const srcs = await listOwnerSources(wallet.address!); const newest = srcs[srcs.length - 1]; if (newest) navigate(`/source/${newest.id}`); }
+    try {
+      await registerSource(label.trim(), description.trim(), url.trim(), wallet.address);
+      setMsg("Baseline committed!");
+      const srcs = await listOwnerSources(wallet.address, 0, 50);
+      const newest = srcs[srcs.length - 1]; if (newest) navigate(`/source/${newest.id}`);
+    }
     catch (e: any) { setError(e.message || "Registration failed."); setMsg(null); }
     finally { setBusy(false); }
   }

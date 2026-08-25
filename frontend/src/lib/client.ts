@@ -1,5 +1,7 @@
 import { RPC_URL, STUDIONET_CHAIN_ID, STUDIONET_CHAIN_ID_HEX } from "../config";
 
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 let _clientPromise: Promise<any> | null = null;
 let _studionetPromise: Promise<any> | null = null;
 
@@ -34,21 +36,35 @@ export async function connectWallet(): Promise<string> {
   if (!w) throw new Error("Install MetaMask or another EVM wallet to continue.");
   const accounts = (await w.request({ method: "eth_requestAccounts" })) as string[];
   if (!accounts.length) throw new Error("No wallet account was returned.");
+  const addr = accounts[0];
+
   try {
     const cid = String(await w.request({ method: "eth_chainId" }));
     if (parseInt(cid, 16) !== STUDIONET_CHAIN_ID) {
-      await w.request({ method: "wallet_switchEthereumChain", params: [{ chainId: STUDIONET_CHAIN_ID_HEX }] });
+      try {
+        await w.request({ method: "wallet_switchEthereumChain", params: [{ chainId: STUDIONET_CHAIN_ID_HEX }] });
+      } catch (switchErr: any) {
+        if (switchErr?.code === 4902) {
+          await w.request({ method: "wallet_addEthereumChain", params: [{
+            chainId: STUDIONET_CHAIN_ID_HEX,
+            chainName: "GenLayer Studio",
+            nativeCurrency: { name: "GEN", symbol: "GEN", decimals: 18 },
+            rpcUrls: [RPC_URL],
+          }] });
+          // retry switch after adding
+          await w.request({ method: "wallet_switchEthereumChain", params: [{ chainId: STUDIONET_CHAIN_ID_HEX }] });
+        } else {
+          throw switchErr;
+        }
+      }
     }
   } catch (e: any) {
-    if (e?.code === 4902) {
-      await w.request({ method: "wallet_addEthereumChain", params: [{
-        chainId: STUDIONET_CHAIN_ID_HEX, chainName: "GenLayer Studio",
-        nativeCurrency: { name: "GEN", symbol: "GEN", decimals: 18 }, rpcUrls: [RPC_URL],
-      }] });
-    } else if (e?.code === 4001) throw new Error("Network switch was cancelled.");
-    else throw e;
+    if (e?.code === 4001) throw new Error("Network switch was cancelled.");
+    // Don't block on chain errors — user can still interact
+    console.warn("Chain switch issue, continuing:", e?.message || e);
   }
-  return accounts[0];
+
+  return addr;
 }
 
 export function subscribeAccounts(cb: (accounts: string[]) => void): () => void {
@@ -66,17 +82,17 @@ export async function createContractClient(walletAccount: string | null) {
   return createClient({
     chain: studionet,
     endpoint: RPC_URL,
-    ...(walletAccount ? { account: walletAccount as `0x${string}` } : {}),
+    account: ((walletAccount || ZERO_ADDRESS) as `0x${string}`),
   });
 }
 
 export async function readContract(address: string, fnName: string, args: unknown[] = []) {
-  const client = await createContractClient(null);
+  const client = await createContractClient(ZERO_ADDRESS);
   return client.readContract({ address: address as `0x${string}`, functionName: fnName, args });
 }
 
-export async function writeContract(address: string, fnName: string, args: unknown[] = []) {
-  const client = await createContractClient(null);
+export async function writeContract(address: string, fnName: string, args: unknown[] = [], walletAccount: string) {
+  const client = await createContractClient(walletAccount);
   return client.writeContract({ address: address as `0x${string}`, functionName: fnName, args }) as Promise<string>;
 }
 

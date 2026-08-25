@@ -35,8 +35,8 @@ async function read(name: string, args: unknown[] = []) {
   return _read(ADDR, name, args);
 }
 
-async function write(name: string, args: unknown[] = []) {
-  return _write(ADDR, name, args);
+async function write(name: string, account: string, args: unknown[] = []) {
+  return _write(ADDR, name, args, account);
 }
 
 export async function getConfig(): Promise<Config> { const v = O(await read("get_config")); return { source_count: toInt(v.source_count), report_count: toInt(v.report_count), check_interval_seconds: toInt(v.check_interval_seconds) }; }
@@ -45,10 +45,12 @@ export async function getReport(id: number): Promise<Report | null> { const v = 
 export async function listSources(offset = 0, limit = 50): Promise<Source[]> { const v = await read("list_sources", [offset, limit]); return Array.isArray(v) ? v.map(S) : []; }
 export async function listOwnerSources(owner: string, offset = 0, limit = 50): Promise<Source[]> { const v = await read("list_owner_sources", [owner, offset, limit]); return Array.isArray(v) ? v.map(S) : []; }
 export async function listReports(sourceId: number, offset = 0, limit = 50): Promise<Report[]> { const v = await read("list_source_reports", [sourceId, offset, limit]); return Array.isArray(v) ? v.map(R) : []; }
-export async function registerSource(label: string, desc: string, url: string): Promise<string> { return write("register_source", [label, desc, url]); }
-export async function checkSource(sourceId: number): Promise<string> { return write("check_source", [sourceId]); }
-export async function retryCheck(reportId: number): Promise<string> { return write("retry_check", [reportId]); }
-export async function pauseSource(sourceId: number): Promise<string> { return write("pause_source", [sourceId]); }
-export async function resumeSource(sourceId: number): Promise<string> { return write("resume_source", [sourceId]); }
+
+// Write methods require wallet account
+export async function registerSource(label: string, desc: string, url: string, account: string): Promise<string> { return write("register_source", account, [label, desc, url]); }
+export async function checkSource(sourceId: number, account: string): Promise<string> { return write("check_source", account, [sourceId]); }
+export async function retryCheck(reportId: number, account: string): Promise<string> { return write("retry_check", account, [reportId]); }
+export async function pauseSource(sourceId: number, account: string): Promise<string> { return write("pause_source", account, [sourceId]); }
+export async function resumeSource(sourceId: number, account: string): Promise<string> { return write("resume_source", account, [sourceId]); }
 
 export { ADDR as contractAddress };
