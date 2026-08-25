@@ -97,7 +97,7 @@ genlayer deploy --contract contracts/source_watch.py
 Copy the resulting address into `frontend/.env` or the hosting provider's environment variables:
 
 ```text
-VITE_CONTRACT_ADDRESS=0xYourSourceWatchContract
+VITE_CONTRACT_ADDRESS=0xA46a017B42C63E14eAA710a3aF37F5e8c0b08e37
 VITE_GENLAYER_NETWORK=studionet
 VITE_GENLAYER_RPC_URL=https://studio.genlayer.com/api
 ```

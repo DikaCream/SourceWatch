@@ -1,23 +1,19 @@
-import { createContext, useContext, useMemo, type ReactNode } from "react";
-import { createSourceWatchClient } from "../lib/client";
-import { SourceWatchClient } from "../lib/contract";
+import { createContext, useContext, type ReactNode } from "react";
 import { useWallet } from "../hooks/useWallet";
 
-interface ContextValue {
+interface Ctx {
   wallet: ReturnType<typeof useWallet>;
-  contract: SourceWatchClient;
 }
 
-const SourceWatchContext = createContext<ContextValue | null>(null);
+const C = createContext<Ctx | null>(null);
 
 export function SourceWatchProvider({ children }: { children: ReactNode }) {
   const wallet = useWallet();
-  const contract = useMemo(() => new SourceWatchClient(createSourceWatchClient(wallet.address)), [wallet.address]);
-  return <SourceWatchContext.Provider value={{ wallet, contract }}>{children}</SourceWatchContext.Provider>;
+  return <C.Provider value={{ wallet }}>{children}</C.Provider>;
 }
 
-export function useSourceWatch(): ContextValue {
-  const value = useContext(SourceWatchContext);
-  if (!value) throw new Error("useSourceWatch must be used inside SourceWatchProvider");
-  return value;
+export function useSourceWatch(): Ctx {
+  const v = useContext(C);
+  if (!v) throw new Error("useSourceWatch inside SourceWatchProvider");
+  return v;
 }
