@@ -1,0 +1,12 @@
+{
+  "name": "sourcewatch",
+  "private": true,
+  "type": "module",
+  "workspaces": ["frontend"],
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "typecheck": "cd frontend && npm run typecheck",
+    "preview": "cd frontend && npm run preview"
+  }
+}
