@@ -1,5 +1,7 @@
 # SourceWatch
 
+**Deployed contract:** [`0xA46a017B42C63E14eAA710a3aF37F5e8c0b08e37`](https://explorer-studio.genlayer.com/address/0xA46a017B42C63E14eAA710a3aF37F5e8c0b08e37) on **StudioNet** (Chain ID 61999)
+
 SourceWatch is a GenLayer app for tracking meaningful changes in public web documents.
 
 A user registers a public HTTPS URL and describes what matters on that page. GenLayer validators fetch the document and commit an agreed baseline snapshot with a Keccak-256 hash. Later checks fetch the current version, compare its meaning with the baseline, and store a permanent report with a status, severity, summary, changed areas, citations, and the current snapshot.

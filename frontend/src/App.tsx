@@ -3,6 +3,7 @@ import { Link, Route, Routes, useLocation } from "react-router-dom";
 import Logo from "./components/Logo";
 import WalletButton from "./components/WalletButton";
 import { useSourceWatch } from "./context/SourceWatchContext";
+import { CONTRACT_ADDRESS, EXPLORER_URL } from "./config";
 import "./styles.css";
 
 const Home = lazy(() => import("./pages/Home"));
@@ -60,6 +61,9 @@ export default function App() {
       <footer>
         <Link to="/"><Logo /></Link>
         <span>Semantic change monitoring powered by GenLayer consensus.</span>
+        <a href={`${EXPLORER_URL}${CONTRACT_ADDRESS}`} target="_blank" rel="noreferrer" className="contract-link" title="View contract on StudioNet explorer">
+          {CONTRACT_ADDRESS.slice(0, 6)}…{CONTRACT_ADDRESS.slice(-4)}
+        </a>
         <a href="https://genlayer.com" target="_blank" rel="noreferrer">GenLayer ↗</a>
       </footer>
     </div>
