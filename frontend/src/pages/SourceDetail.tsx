@@ -30,6 +30,7 @@ export default function SourceDetail() {
     </div>
     <button className="button button-accent" onClick={check} disabled={checking || source.status !== "ACTIVE"}>{checking ? "Checking…" : wallet.address ? "Check now" : "Connect to check"}</button></div>
     {error && <div className="error-box">{error}</div>}{msg && <div className="status-box"><span className="check-mark">✓</span>{msg}</div>}
+    {source.status === "PAUSED" && source.consecutive_failures > 0 && <div className="status-box warning-box">Auto-paused after {source.consecutive_failures} consecutive failed checks. Review the report, then resume the source.</div>}
     <section className="identity-grid">
       <div className="identity-card"><span className="section-index">BASELINE IDENTITY</span><code className="identity-hash">{source.baseline_hash}</code><span>Committed {formatDate(source.baseline_at)}</span></div>
       <div className="identity-card"><span className="section-index">WATCH STATS</span><div className="watch-stat"><strong>{source.check_count}</strong><span>checks</span></div><div className="watch-stat"><strong className={source.material_count ? "warning-number" : ""}>{source.material_count}</strong><span>material</span></div></div>

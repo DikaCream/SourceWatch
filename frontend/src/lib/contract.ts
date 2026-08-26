@@ -14,7 +14,8 @@ function S(value: any): Source {
     description: toStringValue(v.description), url: toStringValue(v.url),
     baseline_hash: toStringValue(v.baseline_hash), baseline_at: toInt(v.baseline_at),
     status: toStringValue(v.status) as Source["status"], check_count: toInt(v.check_count),
-    material_count: toInt(v.material_count), last_checked_at: toInt(v.last_checked_at),
+    material_count: toInt(v.material_count), consecutive_failures: toInt(v.consecutive_failures),
+    last_checked_at: toInt(v.last_checked_at),
     last_report_id: toInt(v.last_report_id),
   };
 }

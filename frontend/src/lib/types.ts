@@ -12,6 +12,7 @@ export interface Source {
   status: SourceStatus;
   check_count: number;
   material_count: number;
+  consecutive_failures: number;
   last_checked_at: number;
   last_report_id: number;
 }

@@ -22,6 +22,7 @@ def test_register_commits_baseline(direct_vm, direct_deploy, direct_alice):
     assert source["owner"].lower() == to_hex(direct_alice).lower()
     assert source["baseline_hash"]
     assert source["check_count"] == 0
+    assert source["consecutive_failures"] == 0
 
 
 def test_register_validates_inputs(direct_vm, direct_deploy, direct_alice):
@@ -115,6 +116,7 @@ def test_failed_check_can_retry_after_cooldown(direct_vm, direct_deploy, direct_
     direct_vm.mock_llm(r".*web-change analyst.*", "not json")
     rid = int(contract.check_source(sid))
     assert contract.get_report(rid)["status"] == "PENDING"
+    assert contract.get_source(sid)["consecutive_failures"] == 1
     with direct_vm.expect_revert("check was attempted recently"):
         contract.retry_check(rid)
     set_time("2030-01-01T00:10:00Z")
@@ -123,6 +125,68 @@ def test_failed_check_can_retry_after_cooldown(direct_vm, direct_deploy, direct_
     mock_check(direct_vm, BASELINE)
     contract.retry_check(rid)
     assert contract.get_report(rid)["status"] == "UNCHANGED"
+    assert contract.get_source(sid)["consecutive_failures"] == 0
+
+
+def test_content_is_normalized_end_to_end(direct_vm, direct_deploy, direct_alice):
+    contract = direct_deploy("contracts/source_watch.py")
+    noisy = "Pricing: 10 GEN per month.\n\n\n   \n\nAPI limit: 100 requests per day.\n\nUpdated: 2030-01-01\n"
+    normalized = "Pricing: 10 GEN per month.\nAPI limit: 100 requests per day.\nUpdated: 2030-01-01"
+    direct_vm.sender = direct_alice
+    direct_vm.mock_web(r".*example\.com.*", {"status": 200, "body": noisy})
+    sid = int(contract.register_source("API docs", GOOD_DESCRIPTION, GOOD_URL))
+    direct_vm.clear_mocks()
+    set_time("2030-01-01T00:10:00Z")
+    direct_vm.sender = direct_alice
+    mock_check(direct_vm, noisy)
+    rid = int(contract.check_source(sid))
+    report = contract.get_report(rid)
+    assert report["status"] == "UNCHANGED"
+    assert report["snapshot"] == normalized
+    assert "\n\n" not in report["snapshot"]
+
+
+def test_citations_grounded_in_stored_snapshot(direct_vm, direct_deploy, direct_alice):
+    contract = direct_deploy("contracts/source_watch.py")
+    sid = register_active(contract, direct_vm, direct_alice)
+    changed = "Pricing: 40 GEN per month. API limit: 20 requests per day."
+    set_time("2030-01-01T00:10:00Z")
+    direct_vm.sender = direct_alice
+    mock_check(
+        direct_vm,
+        changed,
+        status="MATERIAL",
+        severity=8,
+        summary="The price and daily API allowance changed materially.",
+        areas="pricing, API limits",
+        citations="40 GEN per month; this claim appears nowhere on the page",
+    )
+    rid = int(contract.check_source(sid))
+    report = contract.get_report(rid)
+    assert "40 GEN" in report["citations"]
+    assert "nowhere" not in report["citations"]
+    assert "appears" not in report["citations"]
+
+
+def test_auto_pause_after_repeated_failures(direct_vm, direct_deploy, direct_alice):
+    contract = direct_deploy("contracts/source_watch.py")
+    sid = register_active(contract, direct_vm, direct_alice)
+    direct_vm.sender = direct_alice
+    direct_vm.mock_web(r".*example\.com.*", {"status": 200, "body": BASELINE})
+    direct_vm.mock_llm(r".*web-change analyst.*", "not json")
+    for _ in range(3):
+        contract.check_source(sid)
+    source = contract.get_source(sid)
+    assert source["status"] == "PAUSED"
+    assert source["consecutive_failures"] == 3
+    with direct_vm.expect_revert("source is paused"):
+        contract.check_source(sid)
+    direct_vm.clear_mocks()
+    contract.resume_source(sid)
+    mock_check(direct_vm, BASELINE)
+    rid = int(contract.check_source(sid))
+    assert contract.get_report(rid)["status"] == "UNCHANGED"
+    assert contract.get_source(sid)["consecutive_failures"] == 0
 
 
 def test_lists_and_missing_views(direct_vm, direct_deploy, direct_alice):

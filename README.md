@@ -1,6 +1,6 @@
 # SourceWatch
 
-**Deployed contract:** [`0xA46a017B42C63E14eAA710a3aF37F5e8c0b08e37`](https://explorer-studio.genlayer.com/address/0xA46a017B42C63E14eAA710a3aF37F5e8c0b08e37) on **StudioNet** (Chain ID 61999)
+**Deployed contract:** [`0xa23Be6A8946ba90c1023eFE75FB6Bf7DaeAEb6a0`](https://explorer-studio.genlayer.com/address/0xa23Be6A8946ba90c1023eFE75FB6Bf7DaeAEb6a0) on **StudioNet** (Chain ID 61999)
 
 SourceWatch is a GenLayer app for tracking meaningful changes in public web documents.
 
@@ -17,7 +17,9 @@ SourceWatch uses two explicit consensus rules:
 - Baseline commitment uses exact hash equivalence. Validators must agree on the snapshot identity before a source becomes active.
 - Change reports use semantic equivalence. Validators must agree on `UNCHANGED` or `MATERIAL`, the severity bucket, and the current snapshot hash. Their summaries and citations may use different wording.
 
-The contract fails closed when a page cannot be fetched or a validator response cannot be parsed. A failed check remains pending and can be retried by the source owner after a cooldown.
+Materiality is not generic. The monitoring description the owner writes at registration is embedded in every validator prompt, so validators judge each source against what that source is actually for. Fetched content is normalized deterministically (whitespace collapsed, blank lines and consecutive duplicate lines removed) before hashing, so dynamic or long pages stay comparable between the baseline and later checks. Every stored citation must appear, token for token, inside the exact snapshot bytes that were judged; any phrase a validator cannot find in the snapshot is dropped instead of stored as unverifiable text.
+
+The contract fails closed when a page cannot be fetched or a validator response cannot be parsed. A failed check remains pending and can be retried by the source owner after a cooldown, and a source that fails three checks in a row is auto-paused until the owner reviews it and resumes.
 
 ## Contract
 
@@ -31,7 +33,7 @@ Core methods:
 | `check_source(source_id)` | Run a new semantic change check |
 | `retry_check(report_id)` | Retry a failed check after the cooldown |
 | `pause_source(source_id)` | Pause checks for an owned source |
-| `resume_source(source_id)` | Resume an owned source |
+| `resume_source(source_id)` | Resume an owned source (auto-paused sources stay paused until resumed) |
 | `get_source(source_id)` | Read source metadata and baseline identity |
 | `get_report(report_id)` | Read a finalized change report |
 | `list_sources(offset, limit)` | Browse registered sources |
@@ -99,7 +101,7 @@ genlayer deploy --contract contracts/source_watch.py
 Copy the resulting address into `frontend/.env` or the hosting provider's environment variables:
 
 ```text
-VITE_CONTRACT_ADDRESS=0xA46a017B42C63E14eAA710a3aF37F5e8c0b08e37
+VITE_CONTRACT_ADDRESS=0xa23Be6A8946ba90c1023eFE75FB6Bf7DaeAEb6a0
 VITE_GENLAYER_NETWORK=studionet
 VITE_GENLAYER_RPC_URL=https://studio.genlayer.com/api
 ```
@@ -116,9 +118,11 @@ Direct tests mock web responses and LLM responses so state transitions are fast 
 
 - URL and field validation
 - Exact baseline commitment
+- Deterministic content normalization (whitespace, blank lines, duplicate lines)
 - Unavailable page failure handling
 - Unchanged and material reports
-- Severity and citation persistence
+- Citation grounding: unverifiable citations are dropped
+- Consecutive-failure bound: three failed checks auto-pause a source
 - Check cooldowns and retry behavior
 - Source pause/resume access control
 - Owner indexes and report pagination
